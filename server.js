@@ -14,7 +14,15 @@ const PORT = process.env.PORT;
 
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN
+    origin: function (origin, callback) {
+      const allowedOrigins = process.env.CLIENT_ORIGIN.split(',');
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Not allowed by CORS'));
+      }
+    }
   })
 );
 app.use(express.json());
