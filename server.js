@@ -12,19 +12,7 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT;
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = process.env.CLIENT_ORIGIN.split(',');
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error('Not allowed by CORS'));
-      }
-    }
-  })
-);
+app.use(cors());
 app.use(express.json());
 
 app.use('/api/folders', foldersRouter);
