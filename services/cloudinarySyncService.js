@@ -153,13 +153,93 @@ async function upsertImage(img, folderId) {
   }
 }
 
+async function syncTestimonials() {
+  try {
+    const bucketName = process.env.SUPABASE_STORAGE_BUCKET;
+    const fileName = process.env.TESTIMONIALS_JSON_FILE || 'testimonials.json';
+    
+    console.log(`Syncing testimonials from ${fileName} in ${bucketName} bucket...`);
+    
+    // Download the JSON file from Supabase Storage
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from(bucketName)
+      .download(fileName);
+    
+    if (downloadError) {
+      console.error('Testimonials download error:', downloadError);
+      throw new Error(`Failed to download testimonials JSON file: ${downloadError.message}`);
+    }
+    
+    // Convert blob to text and parse JSON
+    const text = await fileData.text();
+    const testimonialsData = JSON.parse(text);
+    
+    if (!Array.isArray(testimonialsData)) {
+      throw new Error('Invalid JSON format. Expected an array of testimonials.');
+    }
+    
+    console.log(`Found ${testimonialsData.length} testimonials in JSON file`);
+    
+    // Validate and prepare testimonials data
+    const validatedTestimonials = testimonialsData.map((testimonial, index) => {
+      const required = ['heading', 'details', 'name', 'occasion', 'date'];
+      const missing = required.filter(field => !testimonial[field]);
+      
+      if (missing.length > 0) {
+        throw new Error(`Testimonial at index ${index} is missing required fields: ${missing.join(', ')}`);
+      }
+      
+      return {
+        heading: testimonial.heading,
+        details: testimonial.details,
+        name: testimonial.name,
+        occasion: testimonial.occasion,
+        date: testimonial.date,
+        image_url: testimonial.image_url || null
+      };
+    });
+    
+    // Clear existing testimonials and insert new ones
+    const { error: deleteError } = await supabase
+      .from('testimonials')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+    
+    if (deleteError) {
+      console.error('Testimonials delete error:', deleteError);
+      throw new Error(`Failed to clear existing testimonials: ${deleteError.message}`);
+    }
+    
+    // Insert new testimonials
+    const { data: insertedData, error: insertError } = await supabase
+      .from('testimonials')
+      .insert(validatedTestimonials)
+      .select();
+    
+    if (insertError) {
+      console.error('Testimonials insert error:', insertError);
+      throw new Error(`Failed to insert testimonials: ${insertError.message}`);
+    }
+    
+    console.log(`Successfully synced ${insertedData.length} testimonials`);
+    return insertedData;
+    
+  } catch (error) {
+    console.error('Testimonials sync failed:', error);
+    throw error;
+  }
+}
+
 async function runSync() {
   try {
     await syncAllRootFolders();
     console.log("Cloudinary sync complete.");
+    
+    await syncTestimonials();
+    console.log("Testimonials sync complete.");
   } catch (e) {
-    console.error("Cloudinary sync failed:", e);
+    console.error("Sync failed:", e);
   }
 }
 
-module.exports = { runSync };
+module.exports = { runSync, syncTestimonials };

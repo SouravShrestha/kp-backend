@@ -6,6 +6,7 @@ const foldersRouter = require('./routes/folders');
 const imagesRouter = require('./routes/images');
 const emailRouter = require('./routes/email');
 const syncRouter = require('./routes/sync');
+const testimonialsRouter = require('./routes/testimonials');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -31,6 +32,7 @@ app.use('/api/folders', foldersRouter);
 app.use('/api/images', imagesRouter);
 app.use('/api/email', emailRouter);
 app.use('/api/sync', syncRouter);
+app.use('/api/testimonials', testimonialsRouter);
 
 app.use(notFound);
 app.use(errorHandler);
